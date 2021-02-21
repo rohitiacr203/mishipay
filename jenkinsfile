@@ -1,0 +1,43 @@
+// ===============================================================================================================
+// Build Jenkinsfile.
+// This file defines the pipeline that builds and push new docker images to docker hub
+//   - If successful, publishes the new image in dockerhub as the "latest" docker image 
+	 - After successful push, it will clean the local built image
+// ===============================================================================================================
+
+pipeline {
+  environment {
+    registry = "rohitiacr203/mishipay-test"
+    registryCredential = 'dockerhub'
+    dockerImage = ''
+  }
+  agent any
+  stages {
+    stage('Cloning Git') {
+      steps {
+        git 'https://github.com/rohitiacr203/mishipay.git'
+      }
+    }
+    stage('Building image') {
+      steps{
+        script {
+          dockerImage = docker.build registry + ":$BUILD_NUMBER"
+        }
+      }
+    }
+    stage('Deploy Image') {
+      steps{
+        script {
+          docker.withRegistry( '', registryCredential ) {
+            dockerImage.push()
+          }
+        }
+      }
+    }
+    stage('Remove Unused docker image') {
+      steps{
+        sh "docker rmi $registry:$BUILD_NUMBER"
+      }
+    }
+  }
+}
